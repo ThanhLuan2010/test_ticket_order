@@ -116,7 +116,10 @@ app.get('/api/bookings/search', (req, res) => {
         );
     });
 
-    res.json(results);
+    res.json({
+        data: results[0],
+        messgae: "Lấy thông tin thành công"
+    });
 });
 
 // API Chỉnh sửa vé (đổi giờ, thông tin...)
