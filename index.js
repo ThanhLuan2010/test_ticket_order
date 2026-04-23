@@ -102,7 +102,7 @@ app.post('/api/bookings', (req, res) => {
 
 // API Tìm kiếm vé (theo bất kỳ thông tin nào)
 app.get('/api/bookings/search', (req, res) => {
-    const { q } = req.body;
+    const q = req.query.q || (req.body && req.body.q);
     if (!q) {
         return res.status(400).json({ message: "Vui lòng cung cấp từ khóa tìm kiếm (q=...)" });
     }
@@ -242,7 +242,7 @@ app.post('/api/shipping', (req, res) => {
 
 // API Tìm kiếm đơn gửi hàng
 app.get('/api/shipping/search', (req, res) => {
-    const { q } = req.body;
+    const q = req.query.q || (req.body && req.body.q);
     if (!q) {
         return res.status(400).json({ message: "Vui lòng cung cấp từ khóa tìm kiếm (q=...)" });
     }
