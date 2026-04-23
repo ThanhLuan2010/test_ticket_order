@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1776915481620,
+    "customerName": "Nguyễn Thành Luân",
+    "itemType": "Đồ ăn",
+    "packageQuantity": 1,
+    "weight": 3,
+    "senderPoint": "Hồ Chí Minh",
+    "receiverPoint": "Bình Phước",
+    "senderPhone": "0899955742",
+    "receiverPhone": "0935742640",
+    "createdAt": "2026-04-23T03:38:01.620Z"
+  }
+]

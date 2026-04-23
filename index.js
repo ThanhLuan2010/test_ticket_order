@@ -5,21 +5,25 @@ const path = require('path');
 const app = express();
 const PORT = 3300;
 const DATA_FILE = path.join(__dirname, 'bookings.json');
+const SHIPPING_FILE = path.join(__dirname, 'shipping.json');
 
-// Helper to read data
-const readData = () => {
+// Helper to read data generic
+const readJsonFile = (filePath) => {
     try {
-        const data = fs.readFileSync(DATA_FILE, 'utf8');
+        const data = fs.readFileSync(filePath, 'utf8');
         return JSON.parse(data);
     } catch (error) {
         return [];
     }
 };
 
-// Helper to write data
-const writeData = (data) => {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+// Helper to write data generic
+const writeJsonFile = (filePath, data) => {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
 };
+
+const readData = () => readJsonFile(DATA_FILE);
+const writeData = (data) => writeJsonFile(DATA_FILE, data);
 
 
 // Middleware đọc JSON
@@ -86,6 +90,143 @@ app.post('/api/bookings', (req, res) => {
     res.status(201).json({
         message: "Đặt vé thành công!",
         data: newBooking
+    });
+});
+
+// API Tìm kiếm vé (theo bất kỳ thông tin nào)
+app.get('/api/bookings/search', (req, res) => {
+    const { q } = req.query;
+    if (!q) {
+        return res.status(400).json({ message: "Vui lòng cung cấp từ khóa tìm kiếm (q=...)" });
+    }
+
+    const bookings = readData();
+    const query = q.toLowerCase();
+
+    const results = bookings.filter(booking => {
+        return Object.values(booking).some(value => 
+            String(value).toLowerCase().includes(query)
+        );
+    });
+
+    res.json(results);
+});
+
+// API Chỉnh sửa vé (đổi giờ, thông tin...)
+app.put('/api/bookings', (req, res) => {
+    const { id, ...updates } = req.body;
+    
+    if (!id) {
+        return res.status(400).json({ message: "Vui lòng cung cấp ID vé trong body." });
+    }
+
+    let bookings = readData();
+
+    const index = bookings.findIndex(b => b.id === parseInt(id));
+    if (index === -1) {
+        return res.status(404).json({ message: "Không tìm thấy vé với ID này." });
+    }
+
+    // Cập nhật các trường gửi lên, trừ các trường hệ thống
+    const allowedUpdates = [
+        'fullName', 'departurePoint', 'destination', 'busCompany',
+        'departureDate', 'departureTime', 'ticketQuantity',
+        'includesChildrenOrLuggage', 'pickupDropoffPoints', 'tripPurpose', 'notes'
+    ];
+
+    Object.keys(updates).forEach(key => {
+        if (allowedUpdates.includes(key)) {
+            bookings[index][key] = updates[key];
+        }
+    });
+
+    bookings[index].updatedAt = new Date().toISOString();
+    writeData(bookings);
+
+    res.json({
+        message: "Cập nhật vé thành công!",
+        data: bookings[index]
+    });
+});
+
+// API Huỷ vé
+app.delete('/api/bookings', (req, res) => {
+    const { id } = req.body;
+
+    if (!id) {
+        return res.status(400).json({ message: "Vui lòng cung cấp ID vé trong body." });
+    }
+
+    let bookings = readData();
+
+    const initialLength = bookings.length;
+    let filteredBookings = bookings.filter(b => b.id !== parseInt(id));
+
+    if (filteredBookings.length === initialLength) {
+        return res.status(404).json({ message: "Không tìm thấy vé với ID này." });
+    }
+
+    writeData(filteredBookings);
+
+    res.json({
+        message: "Huỷ vé thành công!"
+    });
+});
+
+/**
+ * API Chức năng gửi hàng
+ * Fields: Tên khách, Loại hàng, Số lượng kiện hàng, Khối lượng, 
+ * Gửi từ, Đến, Sđt người gửi, Sđt người nhận
+ */
+
+// API Lấy danh sách gửi hàng
+app.get('/api/shipping', (req, res) => {
+    const shipping = readJsonFile(SHIPPING_FILE);
+    res.json(shipping);
+});
+
+// API Gửi hàng mới
+app.post('/api/shipping', (req, res) => {
+    const {
+        customerName,
+        itemType,
+        packageQuantity,
+        weight,
+        senderPoint,
+        receiverPoint,
+        senderPhone,
+        receiverPhone
+    } = req.body;
+
+    // Kiểm tra các trường bắt buộc
+    if (!customerName || !itemType || !packageQuantity || !weight ||
+        !senderPoint || !receiverPoint || !senderPhone || !receiverPhone) {
+        return res.status(400).json({
+            message: "Thiếu thông tin bắt buộc. Vui lòng kiểm tra lại."
+        });
+    }
+
+    const shippingList = readJsonFile(SHIPPING_FILE);
+
+    const newShipping = {
+        id: Date.now(),
+        customerName,
+        itemType,
+        packageQuantity,
+        weight,
+        senderPoint,
+        receiverPoint,
+        senderPhone,
+        receiverPhone,
+        createdAt: new Date().toISOString()
+    };
+
+    shippingList.push(newShipping);
+    writeJsonFile(SHIPPING_FILE, shippingList);
+
+    res.status(201).json({
+        message: "Gửi hàng thành công!",
+        data: newShipping
     });
 });
 
