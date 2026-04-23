@@ -21,6 +21,15 @@ const setShippingStore = (data) => {
     shippingStore = data;
 };
 
+// Helper tạo ID ngẫu nhiên 3 chữ số (100-999)
+const generateShortId = (store) => {
+    let id;
+    do {
+        id = Math.floor(Math.random() * 900) + 100;
+    } while (store.some(item => item.id === id));
+    return id;
+};
+
 
 // Middleware đọc JSON
 app.use(express.json());
@@ -65,7 +74,7 @@ app.post('/api/bookings', (req, res) => {
     const bookings = readData();
 
     const newBooking = {
-        id: Date.now(),
+        id: generateShortId(bookings),
         fullName,
         departurePoint,
         destination,
@@ -205,7 +214,7 @@ app.post('/api/shipping', (req, res) => {
     const shippingList = getShippingStore();
 
     const newShipping = {
-        id: Date.now(),
+        id: generateShortId(shippingList),
         customerName,
         itemType,
         packageQuantity,
