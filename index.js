@@ -106,7 +106,7 @@ app.get('/api/bookings/search', (req, res) => {
     }
 
     const bookings = readData();
-    const query = q.toLowerCase();
+    const query = typeof q === 'string' ? q?.toLowerCase() : q;
 
     const results = bookings.filter(booking => {
         return Object.values(booking).some(value =>
