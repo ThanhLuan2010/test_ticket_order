@@ -35,7 +35,7 @@ const generateShortId = (store) => {
 app.use(express.json());
 /**
  * API Chức năng đặt vé
- * Fields: Tên, điểm đi, điểm đến, tên nhà xe, ngày đi, giờ đi, số lượng vé,
+ * Fields: Tên, Sđt, điểm đi, điểm đến, tên nhà xe, ngày đi, giờ đi, số lượng vé,
  * có bào gồm trẻ em hay hành lý không, điểm đón trả cụ thể,
  * múc đích chuyến đi (optional), ghi chú (optional)
  */
@@ -50,6 +50,7 @@ app.get('/api/bookings', (req, res) => {
 app.post('/api/bookings', (req, res) => {
     const {
         fullName,
+        phoneNumber,
         departurePoint,
         destination,
         busCompany,
@@ -63,7 +64,7 @@ app.post('/api/bookings', (req, res) => {
     } = req.body;
 
     // Kiểm tra các trường bắt buộc
-    if (!fullName || !departurePoint || !destination || !busCompany ||
+    if (!fullName || !phoneNumber || !departurePoint || !destination || !busCompany ||
         !departureDate || !departureTime || !ticketQuantity ||
         includesChildrenOrLuggage === undefined || !pickupDropoffPoints) {
         return res.status(400).json({
@@ -76,6 +77,7 @@ app.post('/api/bookings', (req, res) => {
     const newBooking = {
         id: generateShortId(bookings),
         fullName,
+        phoneNumber,
         departurePoint,
         destination,
         busCompany,
@@ -134,7 +136,7 @@ app.put('/api/bookings', (req, res) => {
 
     // Cập nhật các trường gửi lên, trừ các trường hệ thống
     const allowedUpdates = [
-        'fullName', 'departurePoint', 'destination', 'busCompany',
+        'fullName', 'phoneNumber', 'departurePoint', 'destination', 'busCompany',
         'departureDate', 'departureTime', 'ticketQuantity',
         'includesChildrenOrLuggage', 'pickupDropoffPoints', 'tripPurpose', 'notes'
     ];
@@ -232,6 +234,85 @@ app.post('/api/shipping', (req, res) => {
     res.status(201).json({
         message: "Gửi hàng thành công!",
         data: newShipping
+    });
+});
+
+// API Tìm kiếm đơn gửi hàng
+app.get('/api/shipping/search', (req, res) => {
+    const { q } = req.body;
+    if (!q) {
+        return res.status(400).json({ message: "Vui lòng cung cấp từ khóa tìm kiếm (q=...)" });
+    }
+
+    const shippingList = getShippingStore();
+    const query = typeof q === 'string' ? q?.toLowerCase() : q;
+
+    const results = shippingList.filter(item => {
+        return Object.values(item).some(value =>
+            String(value).toLowerCase().includes(query)
+        );
+    });
+
+    res.json(results);
+});
+
+// API Chỉnh sửa đơn gửi hàng
+app.put('/api/shipping', (req, res) => {
+    const { id, ...updates } = req.body;
+
+    if (!id) {
+        return res.status(400).json({ message: "Vui lòng cung cấp ID đơn hàng trong body." });
+    }
+
+    let shippingList = getShippingStore();
+
+    const index = shippingList.findIndex(s => s.id === parseInt(id));
+    if (index === -1) {
+        return res.status(404).json({ message: "Không tìm thấy đơn gửi hàng với ID này." });
+    }
+
+    // Cập nhật các trường gửi lên
+    const allowedUpdates = [
+        'customerName', 'itemType', 'packageQuantity', 'weight',
+        'senderPoint', 'receiverPoint', 'senderPhone', 'receiverPhone'
+    ];
+
+    Object.keys(updates).forEach(key => {
+        if (allowedUpdates.includes(key)) {
+            shippingList[index][key] = updates[key];
+        }
+    });
+
+    shippingList[index].updatedAt = new Date().toISOString();
+    setShippingStore(shippingList);
+
+    res.json({
+        message: "Cập nhật đơn gửi hàng thành công!",
+        data: shippingList[index]
+    });
+});
+
+// API Huỷ đơn gửi hàng
+app.delete('/api/shipping', (req, res) => {
+    const { id } = req.body;
+
+    if (!id) {
+        return res.status(400).json({ message: "Vui lòng cung cấp ID đơn hàng trong body." });
+    }
+
+    let shippingList = getShippingStore();
+
+    const initialLength = shippingList.length;
+    let filteredList = shippingList.filter(s => s.id !== parseInt(id));
+
+    if (filteredList.length === initialLength) {
+        return res.status(404).json({ message: "Không tìm thấy đơn gửi hàng với ID này." });
+    }
+
+    setShippingStore(filteredList);
+
+    res.json({
+        message: "Huỷ đơn gửi hàng thành công!"
     });
 });
 
