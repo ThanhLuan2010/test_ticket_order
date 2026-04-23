@@ -24,27 +24,6 @@ const writeData = (data) => {
 
 // Middleware đọc JSON
 app.use(express.json());
-
-
-const sessionConfig = JSON.stringify({
-    type: "realtime",
-    model: "gpt-realtime",
-    audio: { output: { voice: "marin" } }
-});
-
-
-// Route test
-app.get('/', (req, res) => {
-    res.json({
-        message: 'Backend NodeJS chạy OK 🚀'
-    });
-});
-
-// Ví dụ API
-app.get('/api/hello', (req, res) => {
-    res.send('Hello NodeJS');
-});
-
 /**
  * API Chức năng đặt vé
  * Fields: Tên, điểm đi, điểm đến, tên nhà xe, ngày đi, giờ đi, số lượng vé,
@@ -75,8 +54,8 @@ app.post('/api/bookings', (req, res) => {
     } = req.body;
 
     // Kiểm tra các trường bắt buộc
-    if (!fullName || !departurePoint || !destination || !busCompany || 
-        !departureDate || !departureTime || !ticketQuantity || 
+    if (!fullName || !departurePoint || !destination || !busCompany ||
+        !departureDate || !departureTime || !ticketQuantity ||
         includesChildrenOrLuggage === undefined || !pickupDropoffPoints) {
         return res.status(400).json({
             message: "Thiếu thông tin bắt buộc. Vui lòng kiểm tra lại."
@@ -109,31 +88,6 @@ app.post('/api/bookings', (req, res) => {
         data: newBooking
     });
 });
-
-
-
-// An endpoint which creates a Realtime API session.
-app.post("/session", async (req, res) => {
-    const fd = new FormData();
-    fd.set("sdp", req.body);
-    fd.set("session", sessionConfig);
-
-    try {
-        const r = await fetch("https://api.openai.com/v1/realtime/calls", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer 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`,
-            },
-            body: fd,
-        });
-        // Send back the SDP we received from the OpenAI REST API
-        const sdp = await r.text();
-        res.send(sdp);
-    } catch (error) {
-        console.error("Token generation error:", error);
-        res.status(500).json({ error: "Failed to generate token" });
-    }
-})
 
 
 if (require.main === module) {
