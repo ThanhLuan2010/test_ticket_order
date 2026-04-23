@@ -91,7 +91,7 @@ app.post('/api/bookings', (req, res) => {
 
 // API Tìm kiếm vé (theo bất kỳ thông tin nào)
 app.get('/api/bookings/search', (req, res) => {
-    const { q } = req.query;
+    const { q } = req.body;
     if (!q) {
         return res.status(400).json({ message: "Vui lòng cung cấp từ khóa tìm kiếm (q=...)" });
     }
