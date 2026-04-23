@@ -4,26 +4,22 @@ const path = require('path');
 
 const app = express();
 const PORT = 3300;
-const DATA_FILE = path.join(__dirname, 'bookings.json');
-const SHIPPING_FILE = path.join(__dirname, 'shipping.json');
+// Lưu trữ trong biến (In-memory storage)
+// CẢNH BÁO: Dữ liệu sẽ bị mất mỗi khi server restart hoặc Vercel Cold Start
+let bookingsStore = [];
+let shippingStore = [];
 
-// Helper to read data generic
-const readJsonFile = (filePath) => {
-    try {
-        const data = fs.readFileSync(filePath, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        return [];
-    }
+// Helper to read data (nay lấy từ biến)
+const readData = () => bookingsStore;
+const writeData = (data) => {
+    bookingsStore = data;
 };
 
-// Helper to write data generic
-const writeJsonFile = (filePath, data) => {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+// Helper cho shipping (nay lấy từ biến)
+const getShippingStore = () => shippingStore;
+const setShippingStore = (data) => {
+    shippingStore = data;
 };
-
-const readData = () => readJsonFile(DATA_FILE);
-const writeData = (data) => writeJsonFile(DATA_FILE, data);
 
 
 // Middleware đọc JSON
@@ -104,7 +100,7 @@ app.get('/api/bookings/search', (req, res) => {
     const query = q.toLowerCase();
 
     const results = bookings.filter(booking => {
-        return Object.values(booking).some(value => 
+        return Object.values(booking).some(value =>
             String(value).toLowerCase().includes(query)
         );
     });
@@ -115,7 +111,7 @@ app.get('/api/bookings/search', (req, res) => {
 // API Chỉnh sửa vé (đổi giờ, thông tin...)
 app.put('/api/bookings', (req, res) => {
     const { id, ...updates } = req.body;
-    
+
     if (!id) {
         return res.status(400).json({ message: "Vui lòng cung cấp ID vé trong body." });
     }
@@ -181,7 +177,7 @@ app.delete('/api/bookings', (req, res) => {
 
 // API Lấy danh sách gửi hàng
 app.get('/api/shipping', (req, res) => {
-    const shipping = readJsonFile(SHIPPING_FILE);
+    const shipping = getShippingStore();
     res.json(shipping);
 });
 
@@ -206,7 +202,7 @@ app.post('/api/shipping', (req, res) => {
         });
     }
 
-    const shippingList = readJsonFile(SHIPPING_FILE);
+    const shippingList = getShippingStore();
 
     const newShipping = {
         id: Date.now(),
@@ -222,7 +218,7 @@ app.post('/api/shipping', (req, res) => {
     };
 
     shippingList.push(newShipping);
-    writeJsonFile(SHIPPING_FILE, shippingList);
+    setShippingStore(shippingList);
 
     res.status(201).json({
         message: "Gửi hàng thành công!",
